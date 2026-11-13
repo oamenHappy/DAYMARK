@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="A private daily learning planner that saves your tasks on your device.">
+<link rel="manifest" href="manifest.json">
+<title>Daymark — Daily Learning Planner</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d2e;--panel2:#172438;--line:#26364c;--text:#eef4fb;--muted:#9aabc0;--accent:#8bb8ff;--green:#55d6a0;--red:#ff8d8d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#1c3150 0,transparent 36%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:auto;padding:24px 16px 56px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}.brand{font-weight:800;letter-spacing:.04em;font-size:18px}.brand span{color:var(--accent)}.local{font-size:12px;color:var(--green);border:1px solid #28634f;padding:5px 9px;border-radius:99px}
+h1{font-size:clamp(27px,6vw,38px);line-height:1.12;margin:0 0 7px}.sub{color:var(--muted);margin:0 0 22px}
+.datebar{display:flex;align-items:center;gap:9px;margin:18px 0}.datebar input{flex:1;min-width:0}.datebar button{padding:10px 13px}
+input,select,textarea,button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 12px}input,select,textarea{width:100%}textarea{resize:vertical;min-height:76px}button{cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:#091322;border-color:var(--accent);font-weight:750}button.ghost{background:transparent}.progress{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0 22px}.progress-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.percent{font-size:27px;font-weight:800;color:var(--green)}.track{height:8px;background:#26364c;border-radius:99px;overflow:hidden;margin-top:10px}.fill{height:100%;background:var(--green);width:0%;transition:width .2s}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}.section-title h2{font-size:16px;margin:0}.count{font-size:12px;color:var(--muted)}
+.task{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;margin:9px 0}.task input[type=checkbox]{width:21px;height:21px;margin:2px 0 0;accent-color:var(--green);flex:none}.taskbody{min-width:0;flex:1}.taskname{font-weight:650;overflow-wrap:anywhere}.task.done .taskname{text-decoration:line-through;color:var(--muted)}.meta{font-size:12px;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}.task a{color:var(--accent)}.actions{display:flex;gap:6px}.actions button{padding:5px 8px;font-size:12px}.empty{padding:24px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:14px}
+.formbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px}.formbox h2{font-size:17px;margin:0 0 13px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.form-actions{display:flex;gap:9px;margin-top:12px}.form-actions button{flex:1}.bottom{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.bottom button{font-size:13px}.hint{color:var(--muted);font-size:12px;margin-top:18px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#eaf3ff;color:#101827;padding:10px 15px;border-radius:99px;font-weight:650;display:none;box-shadow:0 8px 30px #0008}
+@media(max-width:520px){main{padding:18px 13px 42px}.fields{grid-template-columns:1fr}.wide{grid-column:auto}.local{font-size:11px}.datebar{gap:6px}.datebar button{padding:9px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top"><div class="brand">DAY<span>MARK</span></div><div class="local">● Saved on this device</div></header>
+  <h1>Your day, with direction.</h1>
+  <p class="sub">Keep your reading, research and learning videos organised. Tick each one off as you complete it.</p>
+  <div class="datebar">
+    <button class="ghost" id="prev" aria-label="Previous day">‹</button>
+    <input type="date" id="day">
+    <button class="ghost" id="next" aria-label="Next day">›</button>
+    <button class="ghost" id="today">Today</button>
+  </div>
+  <section class="progress">
+    <div class="progress-head"><div><strong>Daily progress</strong><div class="meta" id="progressText">0 of 0 completed</div></div><div class="percent" id="percent">0%</div></div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+  </section>
+  <div class="section-title"><h2>Today's activities</h2><span class="count" id="taskCount">0 activities</span></div>
+  <div id="tasks"></div>
+  <section class="formbox" id="formbox">
+    <h2 id="formTitle">＋ Add an activity</h2>
+    <form id="taskForm">
+      <div class="fields">
+        <select id="category" aria-label="Category">
+          <option value="Reading">Reading</option><option value="Research">Research</option><option value="Video">Video learning</option><option value="Project">Project</option><option value="Personal">Personal</option><option value="Other">Other</option>
+        </select>
+        <input id="title" placeholder="What do you need to do?" required maxlength="160">
+        <textarea class="wide" id="notes" placeholder="Details: book chapters, page numbers, what to research, or reminders…"></textarea>
+        <input class="wide" id="url" type="url" placeholder="Optional link (YouTube, article, course, etc.)">
+      </div>
+      <div class="form-actions"><button class="primary" type="submit" id="saveBtn">Add activity</button><button type="button" class="ghost" id="cancelEdit" hidden>Cancel</button></div>
+    </form>
+  </section>
+  <div class="bottom">
+    <button id="export">Export backup</button>
+    <button id="importBtn">Import backup</button>
+    <input id="importFile" type="file" accept="application/json" hidden>
+  </div>
+  <p class="hint">Your tasks are stored in this browser on this device. Export a backup occasionally. Clearing browser data or changing browsers/devices can remove access to your saved tasks.</p>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const DB_NAME='DaymarkLocalDB', STORE='activities';
+let db, selectedDate = localDate(), editingId = null;
+const $ = id => document.getElementById(id);
+function localDate(d=new Date()){const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE)){const s=d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});s.createIndex('date','date',{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function store(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
+function allTasks(){return new Promise((resolve,reject)=>{const r=store().index('date').getAll(selectedDate);r.onsuccess=()=>resolve(r.result.sort((a,b)=>a.id-b.id));r.onerror=()=>reject(r.error)})}
+function saveTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').put(task);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function addTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').add(task);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function deleteTask(id){return new Promise((resolve,reject)=>{const r=store('readwrite').delete(id);r.onsuccess=resolve;r.onerror=()=>reject(r.error)})}
+function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2100)}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function render(){
+ $('day').value=selectedDate;const tasks=await allTasks(),done=tasks.filter(t=>t.done).length,pct=tasks.length?Math.round(done/tasks.length*100):0;
+ $('percent').textContent=pct+'%';$('progressText').textContent=`${done} of ${tasks.length} completed`;$('fill').style.width=pct+'%';$('taskCount').textContent=`${tasks.length} ${tasks.length===1?'activity':'activities'}`;
+ const host=$('tasks');host.innerHTML='';
+ if(!tasks.length){host.innerHTML='<div class="empty">Nothing planned for this day yet.<br>Add your first activity below.</div>';return}
+ tasks.forEach(t=>{const el=document.createElement('article');el.className='task'+(t.done?' done':'');
+ const link=t.url?`<div class="meta"><a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer">Open saved link ↗</a></div>`:'';
+ el.innerHTML=`<input type="checkbox" ${t.done?'checked':''} aria-label="Mark ${esc(t.title)} complete"><div class="taskbody"><div class="taskname">${esc(t.title)}</div><div class="meta">${esc(t.category)}${t.notes?' · '+esc(t.notes):''}</div>${link}</div><div class="actions"><button data-action="edit">Edit</button><button data-action="delete">Delete</button></div>`;
+ el.querySelector('input').addEventListener('change',async e=>{t.done=e.target.checked;await saveTask(t);render()});
+ el.querySelector('[data-action=edit]').addEventListener('click',()=>edit(t));
+ el.querySelector('[data-action=delete]').addEventListener('click',async()=>{if(confirm('Delete this activity?')){await deleteTask(t.id);toast('Activity deleted');render()}});
+ host.appendChild(el)});
+}
+function resetForm(){editingId=null;$('taskForm').reset();$('formTitle').textContent='＋ Add an activity';$('saveBtn').textContent='Add activity';$('cancelEdit').hidden=true}
+function edit(t){editingId=t.id;$('category').value=t.category;$('title').value=t.title;$('notes').value=t.notes||'';$('url').value=t.url||'';$('formTitle').textContent='Edit activity';$('saveBtn').textContent='Save changes';$('cancelEdit').hidden=false;$('formbox').scrollIntoView({behavior:'smooth',block:'center'})}
+$('taskForm').addEventListener('submit',async e=>{e.preventDefault();const task={date:selectedDate,category:$('category').value,title:$('title').value.trim(),notes:$('notes').value.trim(),url:$('url').value.trim(),done:false};if(editingId){const old=(await allTasks()).find(t=>t.id===editingId);task.id=editingId;task.done=old?.done||false;await saveTask(task);toast('Changes saved')}else{await addTask(task);toast('Activity added')}resetForm();render()});
+$('cancelEdit').onclick=resetForm;
+$('day').onchange=e=>{selectedDate=e.target.value||localDate();resetForm();render()};
+$('prev').onclick=()=>shift(-1);$('next').onclick=()=>shift(1);$('today').onclick=()=>{selectedDate=localDate();render()};
+function shift(n){const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()+n);selectedDate=localDate(d);resetForm();render()}
+$('export').onclick=async()=>{const req=store().getAll();req.onsuccess=()=>{const blob=new Blob([JSON.stringify({app:'Daymark',version:1,exportedAt:new Date().toISOString(),activities:req.result},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='daymark-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exported')}};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.activities))throw Error();for(const t of data.activities){if(t.date&&t.title)await addTask({date:t.date,category:t.category||'Other',title:t.title,notes:t.notes||'',url:t.url||'',done:!!t.done})}toast('Backup imported');render()}catch{alert('This backup file is not valid.')}e.target.value=''};
+(async()=>{try{db=await openDB();await render();if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(e){document.querySelector('main').insertAdjacentHTML('beforeend','<p class="hint">Could not open local database in this browser. Open the hosted app in Chrome and try again.</p>')}})();
+</script>
+</body></html>
