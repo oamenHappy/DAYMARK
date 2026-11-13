@@ -16,7 +16,7 @@ h1{font-size:clamp(27px,6vw,38px);line-height:1.12;margin:0 0 7px}.sub{color:var
 input,select,textarea,button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 12px}input,select,textarea{width:100%}textarea{resize:vertical;min-height:76px}button{cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:#091322;border-color:var(--accent);font-weight:750}button.ghost{background:transparent}.progress{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0 22px}.progress-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.percent{font-size:27px;font-weight:800;color:var(--green)}.track{height:8px;background:#26364c;border-radius:99px;overflow:hidden;margin-top:10px}.fill{height:100%;background:var(--green);width:0%;transition:width .2s}
 .section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}.section-title h2{font-size:16px;margin:0}.count{font-size:12px;color:var(--muted)}
 .task{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;margin:9px 0}.task input[type=checkbox]{width:21px;height:21px;margin:2px 0 0;accent-color:var(--green);flex:none}.taskbody{min-width:0;flex:1}.taskname{font-weight:650;overflow-wrap:anywhere}.task.done .taskname{text-decoration:line-through;color:var(--muted)}.meta{font-size:12px;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}.task a{color:var(--accent)}.actions{display:flex;gap:6px}.actions button{padding:5px 8px;font-size:12px}.empty{padding:24px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:14px}
-.formbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px}.formbox h2{font-size:17px;margin:0 0 13px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.form-actions{display:flex;gap:9px;margin-top:12px}.form-actions button{flex:1}.bottom{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.bottom button{font-size:13px}.hint{color:var(--muted);font-size:12px;margin-top:18px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#eaf3ff;color:#101827;padding:10px 15px;border-radius:99px;font-weight:650;display:none;box-shadow:0 8px 30px #0008}
+.formbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:24px}.formbox h2{font-size:17px;margin:0 0 13px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.form-actions{display:flex;gap:9px;margin-top:12px}.form-actions button{flex:1}.bottom{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.bottom button{font-size:13px}.hint{color:var(--muted);font-size:12px;margin-top:18px}.cloudbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:22px}.cloudbox h2{font-size:17px;margin:0 0 5px}.cloudstatus{font-size:13px;color:var(--muted);margin:8px 0 12px}.cloudrow{display:flex;gap:9px;flex-wrap:wrap}.cloudrow button{flex:1}.cloudbox input{margin:10px 0}.cloudnote{font-size:12px;color:var(--muted);margin-top:10px}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#eaf3ff;color:#101827;padding:10px 15px;border-radius:99px;font-weight:650;display:none;box-shadow:0 8px 30px #0008}
 @media(max-width:520px){main{padding:18px 13px 42px}.fields{grid-template-columns:1fr}.wide{grid-column:auto}.local{font-size:11px}.datebar{gap:6px}.datebar button{padding:9px}.actions{flex-direction:column}}
 </style>
 </head>
@@ -51,6 +51,17 @@ input,select,textarea,button{font:inherit;color:var(--text);background:var(--pan
       <div class="form-actions"><button class="primary" type="submit" id="saveBtn">Add activity</button><button type="button" class="ghost" id="cancelEdit" hidden>Cancel</button></div>
     </form>
   </section>
+  <section class="cloudbox">
+    <h2>☁ Google Drive backup</h2>
+    <p class="cloudstatus" id="cloudStatus">Not connected. Your activities are currently saved on this device only.</p>
+    <label for="clientId" class="meta">Google OAuth Client ID</label>
+    <input id="clientId" type="text" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+    <div class="cloudrow">
+      <button class="primary" id="connectDrive">Connect Google Drive</button>
+      <button id="syncDrive" disabled>Sync now</button>
+    </div>
+    <p class="cloudnote">Daymark will create or update one file named <b>daymark-backup.json</b> in your Google Drive. It requests access only to files created or opened by Daymark. Your Google password is never entered into Daymark.</p>
+  </section>
   <div class="bottom">
     <button id="export">Export backup</button>
     <button id="importBtn">Import backup</button>
@@ -59,6 +70,7 @@ input,select,textarea,button{font:inherit;color:var(--text);background:var(--pan
   <p class="hint">Your tasks are stored in this browser on this device. Export a backup occasionally. Clearing browser data or changing browsers/devices can remove access to your saved tasks.</p>
 </main>
 <div class="toast" id="toast" role="status"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const DB_NAME='DaymarkLocalDB', STORE='activities';
 let db, selectedDate = localDate(), editingId = null;
@@ -67,9 +79,9 @@ function localDate(d=new Date()){const x=new Date(d.getTime()-d.getTimezoneOffse
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE)){const s=d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});s.createIndex('date','date',{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 function store(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
 function allTasks(){return new Promise((resolve,reject)=>{const r=store().index('date').getAll(selectedDate);r.onsuccess=()=>resolve(r.result.sort((a,b)=>a.id-b.id));r.onerror=()=>reject(r.error)})}
-function saveTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').put(task);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
-function addTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').add(task);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-function deleteTask(id){return new Promise((resolve,reject)=>{const r=store('readwrite').delete(id);r.onsuccess=resolve;r.onerror=()=>reject(r.error)})}
+function saveTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').put(task);r.onsuccess=()=>{resolve();cloudSyncAfterLocalChange()};r.onerror=()=>reject(r.error)})}
+function addTask(task){return new Promise((resolve,reject)=>{const r=store('readwrite').add(task);r.onsuccess=()=>{resolve(r.result);cloudSyncAfterLocalChange()};r.onerror=()=>reject(r.error)})}
+function deleteTask(id){return new Promise((resolve,reject)=>{const r=store('readwrite').delete(id);r.onsuccess=()=>{resolve();cloudSyncAfterLocalChange()};r.onerror=()=>reject(r.error)})}
 function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2100)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function render(){
@@ -95,6 +107,29 @@ function shift(n){const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate
 $('export').onclick=async()=>{const req=store().getAll();req.onsuccess=()=>{const blob=new Blob([JSON.stringify({app:'Daymark',version:1,exportedAt:new Date().toISOString(),activities:req.result},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='daymark-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exported')}};
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.activities))throw Error();for(const t of data.activities){if(t.date&&t.title)await addTask({date:t.date,category:t.category||'Other',title:t.title,notes:t.notes||'',url:t.url||'',done:!!t.done})}toast('Backup imported');render()}catch{alert('This backup file is not valid.')}e.target.value=''};
+// Google Drive cloud backup. OAuth access tokens stay in memory and are never written to storage.
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE='daymark-backup.json';
+let driveToken=null, driveTokenClient=null, cloudBusy=false, cloudTimer=null;
+function setCloudStatus(msg,connected=false){$('cloudStatus').textContent=msg;$('syncDrive').disabled=!connected}
+$('clientId').value=localStorage.getItem('daymark_google_client_id')||'';
+function waitForGoogle(){return new Promise((resolve,reject)=>{let tries=0;const tick=()=>{if(window.google?.accounts?.oauth2)return resolve();if(++tries>40)return reject(new Error('Google authorization library did not load. Check your internet connection and reload.'));setTimeout(tick,250)};tick()})}
+async function connectDrive(){const clientId=$('clientId').value.trim();if(!clientId){alert('Enter your Google OAuth Web Client ID first.');return}localStorage.setItem('daymark_google_client_id',clientId);try{await waitForGoogle();driveTokenClient=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:DRIVE_SCOPE,callback:async(resp)=>{if(resp.error){setCloudStatus('Google connection failed: '+resp.error);return}driveToken=resp.access_token;setCloudStatus('Connected to Google Drive. Checking your backup…',true);try{await initialCloudSetup()}catch(e){setCloudStatus('Drive error: '+e.message,true);console.error(e)}}});driveTokenClient.requestAccessToken({prompt:'consent'});}catch(e){setCloudStatus(e.message);alert(e.message)}}
+$('connectDrive').addEventListener('click',connectDrive);
+function authHeaders(){if(!driveToken)throw new Error('Connect Google Drive to continue.');return {Authorization:'Bearer '+driveToken}}
+async function driveRequest(url,opts={}){const r=await fetch(url,{...opts,headers:{...authHeaders(),...(opts.headers||{})}});if(!r.ok){let detail='';try{detail=(await r.json()).error?.message||''}catch{}if(r.status===401){driveToken=null;setCloudStatus('Google access expired. Connect Google Drive again.')}throw new Error(detail||('Google Drive returned '+r.status))}return r.status===204?null:r.json()}
+async function findBackup(){const q=encodeURIComponent("name='"+DRIVE_FILE+"' and trashed=false");const data=await driveRequest('https://www.googleapis.com/drive/v3/files?q='+q+'&spaces=drive&fields=files(id,name,modifiedTime)&pageSize=10');return data.files?.[0]||null}
+async function readBackup(file){const r=await driveRequest('https://www.googleapis.com/drive/v3/files/'+file.id+'?alt=media');return r}
+async function uploadBackup(){if(!driveToken||cloudBusy)return;cloudBusy=true;try{const req=store().getAll();const tasks=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});const payload=JSON.stringify({app:'Daymark',version:2,updatedAt:new Date().toISOString(),activities:tasks});let file=await findBackup();let result;if(file){result=await driveRequest('https://www.googleapis.com/upload/drive/v3/files/'+file.id+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body:payload})}else{const boundary='daymark_'+crypto.randomUUID().replaceAll('-','');const metadata={name:DRIVE_FILE,mimeType:'application/json'};const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+payload+'\r\n--'+boundary+'--';result=await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body})}setCloudStatus('Backed up to Google Drive · '+new Date().toLocaleTimeString(),true)}finally{cloudBusy=false}}
+function cloudSyncAfterLocalChange(){if(!driveToken)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>uploadBackup().catch(e=>{console.error(e);setCloudStatus('Backup paused: '+e.message,!!driveToken)}),1200)}
+async function getAllLocal(){const req=store().getAll();return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function taskKey(t){return [t.date,t.category,t.title].map(x=>String(x||'').trim().toLowerCase()).join('|')}
+async function initialCloudSetup(){const local=await getAllLocal();const cloudFile=await findBackup();if(!cloudFile){await uploadBackup();toast('Your existing activities were backed up to Drive');return}const remote=await readBackup(cloudFile);const remoteTasks=Array.isArray(remote.activities)?remote.activities:[];if(!local.length){for(const t of remoteTasks){const copy={date:t.date,category:t.category||'Other',title:t.title,notes:t.notes||'',url:t.url||'',done:!!t.done};if(copy.date&&copy.title)await addTask(copy)}await render();setCloudStatus('Restored '+remoteTasks.length+' activities from Google Drive',true);return}
+// Preserve local records and add cloud-only activities; completion is combined for matching tasks.
+const byKey=new Map(local.map(t=>[taskKey(t),t]));for(const t of remoteTasks){if(!t.date||!t.title)continue;const k=taskKey(t),existing=byKey.get(k);if(existing){if(t.done&&!existing.done){existing.done=true;await saveTask(existing)}}else{const copy={date:t.date,category:t.category||'Other',title:t.title,notes:t.notes||'',url:t.url||'',done:!!t.done};await addTask(copy);byKey.set(k,copy)}}await render();await uploadBackup();toast('Local and Drive activities merged')}
+$('syncDrive').addEventListener('click',async()=>{try{await initialCloudSetup();toast('Drive sync complete')}catch(e){setCloudStatus('Sync failed: '+e.message,!!driveToken);alert(e.message)}});
+window.addEventListener('online',()=>{if(driveToken)cloudSyncAfterLocalChange()});
+window.addEventListener('focus',()=>{if(driveToken)cloudSyncAfterLocalChange()});
 (async()=>{try{db=await openDB();await render();if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(e){document.querySelector('main').insertAdjacentHTML('beforeend','<p class="hint">Could not open local database in this browser. Open the hosted app in Chrome and try again.</p>')}})();
 </script>
 </body></html>
